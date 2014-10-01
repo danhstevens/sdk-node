@@ -7,6 +7,10 @@ module.exports = (cache) ->
 		make_request : (r, method, url, options) ->
 			defer = Q.defer()
 
+			raw = options?.raw || false
+
+			delete options?.raw
+
 			if r.error?
 				defer.reject new Error('Not authenticated for provider \'' + r.provider + '\'')
 				return defer.promise
@@ -37,7 +41,7 @@ module.exports = (cache) ->
 				get_options = options
 				options = undefined
 
-			options = {
+			opts = {
 				method: method,
 				url: url,
 				headers: headers,
@@ -46,19 +50,26 @@ module.exports = (cache) ->
 				qs: get_options
 			}
 
-			request(options, (error, r, body) ->
+			if options?.json
+				delete opts.form
+				opts.json = options.json
+
+			request(opts, (error, r, body) ->
 				response = undefined
 				if body? and r.statusCode >= 200 and r.statusCode < 300
 					if typeof body is 'string'
 						try
 							response = JSON.parse body
-						catch
+						catch e
+							response = body if raw
 					if typeof body is 'object'
 						response = body
 					defer.resolve response
 					return
+				else if raw
+					defer.resolve body
 				else
-					defer.reject {error:error,body:body,status:r.statusCode,message:r.statusMessage};
+					defer.reject error: error, body: body, status: r.statusCode, message: r.statusMessage
 				if error
 					defer.reject error
 			);
