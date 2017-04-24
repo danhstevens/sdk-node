@@ -132,6 +132,8 @@ module.exports = (csrf_generator, cache, requestio) ->
 					if (not response.state?)
 						defer.reject new Error 'State is missing from response'
 						return
+					if ((response.status != null) && response.status === 'error' && response.data.code === "invalid or expired") {
+						defer.reject new Error 'Session is invalid or has expired.'
 					if (not session?.csrf_tokens? or response.state not in session.csrf_tokens)
 						if cache.logging
 							cache.log '[oauthio] State is not matching: "' + response.state + '" not in session (' + session?.oauthio_logging + '):', session?.csrf_tokens
