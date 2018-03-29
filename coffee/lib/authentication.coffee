@@ -51,7 +51,7 @@ module.exports = (csrf_generator, cache, requestio) ->
 
 		auth: (provider, session, opts) ->
 			defer = Q.defer()
-
+			
 			if typeof session == "function"
 				return a.redirect provider, session
 
@@ -129,19 +129,29 @@ module.exports = (csrf_generator, cache, requestio) ->
 
 					if (response.status? and response.status == 'error' and response.message?)
 						defer.reject new Error 'OAuth.io / oauthd responded with : ' + response.message
+					if (response.status? and response.status == 'error' and response.data.code == "invalid or expired")
+						e = new Error 'Session is invalid or has expired.'
+						e.name = 'session_expired'
+						defer.reject e 
+						return
 					if (not response.state?)
-						defer.reject new Error 'State is missing from response'
+						e = new Error 'State is missing from response'
+						e.name = 'state_missing'
+						defer.reject e 
 						return
 					if (not session?.csrf_tokens? or response.state not in session.csrf_tokens)
 						if cache.logging
 							cache.log '[oauthio] State is not matching: "' + response.state + '" not in session (' + session?.oauthio_logging + '):', session?.csrf_tokens
-						defer.reject new Error 'State is not matching'
+						e = new Error 'State is not matching'
+						e.name = 'state_mismatch'
+						defer.reject e 
 					if response.expires_in
 						response.expires = new Date().getTime() + response.expires_in * 1000
 					response = a.construct_request_object response
 					if (session?)
 						session.oauth = session.oauth || {}
 						session.oauth[response.provider] = response
+					
 					defer.resolve response
 					return
 				if (typeof session.reload) == 'function'
