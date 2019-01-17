@@ -58,7 +58,6 @@ module.exports = (cache) ->
 					return body
 
 			request(options, (error, r, body) ->
-				response = undefined
 				if body? and r.statusCode >= 200 and r.statusCode < 300
 					defer.resolve _getResponse(body)
 					return
