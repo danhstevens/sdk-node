@@ -46,19 +46,24 @@ module.exports = (cache) ->
 				qs: get_options
 			}
 
+			_getResponse = (body) ->
+				if typeof body is 'object'
+					return body
+
+				try
+					# Try to convert to json
+					return JSON.parse body
+				catch
+					# return body
+					return body
+
 			request(options, (error, r, body) ->
 				response = undefined
 				if body? and r.statusCode >= 200 and r.statusCode < 300
-					if typeof body is 'string'
-						try
-							response = JSON.parse body
-						catch
-					if typeof body is 'object'
-						response = body
-					defer.resolve response
+					defer.resolve _getResponse(body)
 					return
 				else
-					defer.reject {error:error,body:body,status:r.statusCode,message:r.statusMessage};
+					defer.reject { error: error, body: body, status: r.statusCode, message: r.statusMessage }
 				if error
 					defer.reject error
 			);
